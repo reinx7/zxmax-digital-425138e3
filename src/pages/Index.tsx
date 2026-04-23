@@ -11,10 +11,11 @@ import InventoryView from "@/components/InventoryView";
 import SupportView from "@/components/SupportView";
 import AdminView from "@/components/AdminView";
 import MyPurchasesView from "@/components/MyPurchasesView";
+import AffiliatesView from "@/components/AffiliatesView";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-type View = "store" | "inventory" | "purchases" | "support" | "admin" | "profile";
+type View = "store" | "inventory" | "purchases" | "support" | "admin" | "profile" | "affiliates";
 
 function Dashboard() {
   const { state, markPurchasePaid } = useStore();
