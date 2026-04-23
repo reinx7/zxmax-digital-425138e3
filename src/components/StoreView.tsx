@@ -57,8 +57,12 @@ export default function StoreView() {
           buyerEmail: state.currentUser.email,
         },
       });
-      if (error) throw error;
-      if (data?.url) {
+
+      if (error || !data?.ok) {
+        throw new Error(error?.message || data?.error || "Erro ao criar sessão de pagamento.");
+      }
+
+      if (data.url) {
         toast.success("Redirecionando para pagamento...");
         window.open(data.url, "_blank");
       } else {

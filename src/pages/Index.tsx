@@ -71,11 +71,12 @@ function AppGate() {
       supabase.functions.invoke("discord-callback", {
         body: { code, redirectUri: window.location.origin + "/" },
       }).then(({ data, error }) => {
-        if (error || !data?.success) {
+        if (error || !data?.ok) {
           toast.error("Erro ao fazer login com Discord: " + (error?.message || data?.error || "Tente novamente."));
           setDiscordLoading(false);
           return;
         }
+
         if (data.password && data.user?.email) {
           supabase.auth.signInWithPassword({
             email: data.user.email,
@@ -85,10 +86,11 @@ function AppGate() {
             else toast.success("Login com Discord realizado!");
             setDiscordLoading(false);
           });
-        } else {
-          toast.error("Erro inesperado no login Discord.");
-          setDiscordLoading(false);
+          return;
         }
+
+        toast.error("Erro inesperado no login Discord.");
+        setDiscordLoading(false);
       });
     }
   }, []);

@@ -6,6 +6,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function respond(payload: Record<string, unknown>) {
+  return new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -13,38 +20,16 @@ serve(async (req) => {
 
   try {
     const apiKey = Deno.env.get("ABACATEPAY_API_KEY");
-    if (!apiKey) throw new Error("ABACATEPAY_API_KEY não configurada");
+    if (!apiKey) return respond({ ok: false, error: "ABACATEPAY_API_KEY não configurada." });
 
     const { productName, priceInCents, buyerEmail } = await req.json();
     if (!productName || !priceInCents || !buyerEmail) {
-      throw new Error("Dados incompletos para checkout");
+      return respond({ ok: false, error: "Dados incompletos para checkout." });
     }
 
     const origin = req.headers.get("origin") || "https://zxmax-digital.lovable.app";
 
-    // First create the customer
-    const customerRes = await fetch("https://api.abacatepay.com/v1/customers/create", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        name: buyerEmail.split("@")[0],
-        email: buyerEmail,
-        cellphone: "",
-        taxId: "",
-      }),
-    });
-
-    const customerData = await customerRes.json();
-    console.log("Customer response:", JSON.stringify(customerData));
-
-    // Extract customer ID - handle different response shapes
-    const customerId = customerData?.data?.id || customerData?.id || null;
-
-    // Create billing with or without customerId
-    const billingBody: Record<string, unknown> = {
+    const billingPayload = {
       frequency: "ONE_TIME",
       methods: ["PIX"],
       products: [
@@ -57,11 +42,10 @@ serve(async (req) => {
       ],
       returnUrl: `${origin}/?payment=success`,
       completionUrl: `${origin}/?payment=success`,
+      customer: {
+        email: buyerEmail,
+      },
     };
-
-    if (customerId) {
-      billingBody.customerId = customerId;
-    }
 
     const response = await fetch("https://api.abacatepay.com/v1/billing/create", {
       method: "POST",
@@ -69,25 +53,39 @@ serve(async (req) => {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`,
       },
-      body: JSON.stringify(billingBody),
+      body: JSON.stringify(billingPayload),
     });
 
     const data = await response.json();
-    console.log("Billing response:", JSON.stringify(data));
 
     if (!response.ok) {
-      throw new Error(data.error || data.message || JSON.stringify(data));
+      return respond({
+        ok: false,
+        error: data.error || data.message || "Erro ao criar cobrança AbacatePay.",
+        diagnostics: {
+          stage: "billing_create",
+          status: response.status,
+          payload: billingPayload,
+          response: data,
+        },
+      });
     }
 
-    return new Response(JSON.stringify({ url: data.url || data.data?.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    const url = data.url || data.data?.url;
+    if (!url) {
+      return respond({
+        ok: false,
+        error: "A AbacatePay não retornou a URL de checkout.",
+        diagnostics: {
+          stage: "billing_response",
+          response: data,
+        },
+      });
+    }
+
+    return respond({ ok: true, success: true, url });
   } catch (error: any) {
     console.error("AbacatePay checkout error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },
-    );
+    return respond({ ok: false, error: error?.message || "Erro interno no checkout AbacatePay." });
   }
 });
