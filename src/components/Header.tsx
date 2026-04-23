@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { useStore } from "@/store/StoreContext";
 import { useAuth } from "@/hooks/useAuth";
-import { Sun, Moon, Search } from "lucide-react";
+import { Sun, Moon, Search, ShieldAlert } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import DiscordIcon from "@/components/DiscordIcon";
+import RulesModal from "@/components/RulesModal";
 
 interface Props {
   onProfileClick?: () => void;
@@ -13,6 +14,7 @@ export default function Header({ onProfileClick }: Props) {
   const { state, isDark, toggleDark } = useStore();
   const { profile } = useAuth();
   const user = state.currentUser;
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/40">
@@ -37,6 +39,20 @@ export default function Header({ onProfileClick }: Props) {
             </a>
           )}
           <NotificationBell />
+          <button
+            onClick={() => setRulesOpen(true)}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-muted transition text-xs font-bold text-muted-foreground"
+            title="Regras do site"
+          >
+            <ShieldAlert className="w-4 h-4" /> Regras
+          </button>
+          <button
+            onClick={() => setRulesOpen(true)}
+            className="sm:hidden p-2 rounded-xl hover:bg-muted transition"
+            title="Regras"
+          >
+            <ShieldAlert className="w-5 h-5 text-muted-foreground" />
+          </button>
           <button onClick={toggleDark} className="p-2 rounded-xl hover:bg-muted transition" title="Mudar tema">
             {isDark ? <Sun className="w-5 h-5 text-muted-foreground" /> : <Moon className="w-5 h-5 text-muted-foreground" />}
           </button>
@@ -51,6 +67,7 @@ export default function Header({ onProfileClick }: Props) {
           )}
         </div>
       </div>
+      <RulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
     </header>
   );
 }
