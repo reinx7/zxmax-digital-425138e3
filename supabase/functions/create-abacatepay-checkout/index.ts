@@ -66,7 +66,7 @@ serve(async (req) => {
         ok: false,
         error: data.error || data.message || "Erro ao criar cobrança AbacatePay.",
         diagnostics: {
-          stage: "billing_create",
+          stage: "billing_create_v2",
           status: response.status,
           payload: billingPayload,
           response: data,
