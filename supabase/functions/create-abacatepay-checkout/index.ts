@@ -43,6 +43,7 @@ serve(async (req) => {
       returnUrl: `${origin}/?payment=success`,
       completionUrl: `${origin}/?payment=success`,
       customer: {
+        name: buyerEmail.split("@")[0] || "Comprador",
         email: buyerEmail,
       },
     };

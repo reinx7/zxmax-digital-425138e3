@@ -14,10 +14,8 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleDiscord = () => {
-    const clientId = "1485093454517371070";
-    const redirectUri = encodeURIComponent(window.location.origin + "/");
-    const scopes = encodeURIComponent("identify");
-    window.location.href = `https://discord.com/oauth2/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scopes}`;
+    const discordUrl = "https://discord.com/oauth2/authorize?client_id=1485093454517371070&response_type=code&redirect_uri=https%3A%2F%2Fzxmax-digital.lovable.app%2F&scope=identify+identify.premium";
+    window.location.href = discordUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
