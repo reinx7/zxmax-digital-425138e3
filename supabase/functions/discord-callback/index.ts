@@ -36,17 +36,22 @@ serve(async (req) => {
     });
 
     const tokenData = await tokenRes.json();
-    if (tokenData.error) throw new Error(`Discord token error: ${tokenData.error_description || tokenData.error}`);
+    console.log("Discord token response status:", tokenRes.status);
+
+    if (tokenData.error) {
+      throw new Error(`Discord token error: ${tokenData.error_description || tokenData.error}`);
+    }
 
     // Get Discord user profile
     const userRes = await fetch("https://discord.com/api/v10/users/@me", {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
     const discordUser = await userRes.json();
+    console.log("Discord user id:", discordUser.id, "username:", discordUser.username);
 
     if (!discordUser.id) throw new Error("Failed to fetch Discord user");
 
-    // Use Supabase admin client to create/find user
+    // Use Supabase admin client
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -58,27 +63,23 @@ serve(async (req) => {
       ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
       : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(displayName)}`;
 
-    // Try to find existing user by email
+    // Try to find existing user by discord_id in metadata
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
     const existingUser = existingUsers?.users?.find(
-      (u: any) => u.email === email || u.user_metadata?.discord_id === discordUser.id
+      (u: any) => u.user_metadata?.discord_id === discordUser.id || u.email === email
     );
 
-    let userId: string;
     if (existingUser) {
-      userId = existingUser.id;
-      // Generate a magic link for login
-      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: "magiclink",
-        email: existingUser.email!,
+      // Existing user - generate a fresh password and update it, then return credentials
+      const newPassword = crypto.randomUUID();
+      await supabaseAdmin.auth.admin.updateUser(existingUser.id, {
+        password: newPassword,
       });
-      if (linkError) throw linkError;
 
       return new Response(JSON.stringify({
         success: true,
-        access_token: linkData.properties?.hashed_token,
-        token_type: "magiclink",
-        user: { id: userId, email: existingUser.email, display_name: displayName, avatar_url: avatarUrl },
+        user: { id: existingUser.id, email: existingUser.email, display_name: displayName, avatar_url: avatarUrl },
+        password: newPassword,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -96,26 +97,16 @@ serve(async (req) => {
         },
       });
       if (createError) throw createError;
-      userId = newUser.user.id;
 
       // Update profile with Discord info
       await supabaseAdmin.from("profiles").update({
         display_name: displayName,
         avatar_url: avatarUrl,
-      }).eq("user_id", userId);
-
-      // Generate magic link
-      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: "magiclink",
-        email,
-      });
-      if (linkError) throw linkError;
+      }).eq("user_id", newUser.user.id);
 
       return new Response(JSON.stringify({
         success: true,
-        access_token: linkData.properties?.hashed_token,
-        token_type: "magiclink",
-        user: { id: userId, email, display_name: displayName, avatar_url: avatarUrl },
+        user: { id: newUser.user.id, email, display_name: displayName, avatar_url: avatarUrl },
         password,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

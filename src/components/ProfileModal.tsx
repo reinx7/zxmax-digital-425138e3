@@ -102,7 +102,7 @@ export default function ProfileModal({ open, onClose }: Props) {
                 <button onClick={() => setEditing(true)}><Edit className="w-4 h-4 text-muted-foreground" /></button>
               </div>
             )}
-            <p className="text-muted-foreground text-xs mt-0.5 font-mono break-all">ID: {authUser.id.slice(0, 8)}...</p>
+            <p className="text-muted-foreground text-xs mt-0.5 font-mono break-all">ID: {authUser.id}</p>
             {profile?.is_verified_seller && (
               <p className="text-success text-sm mt-0.5 font-semibold">✓ Vendedor Verificado</p>
             )}
