@@ -55,6 +55,15 @@ export interface Product {
   deliveryContent?: string;
   variations?: ProductVariation[];
   questions?: ProductQuestion[];
+  affiliateEnabled?: boolean;
+  affiliateCommission?: number; // percent 0-100
+}
+
+export interface Affiliation {
+  id: number;
+  productId: number;
+  affiliateEmail: string;
+  createdAt: string;
 }
 
 export interface PurchaseMessage {
@@ -132,6 +141,7 @@ interface AppState {
   adminChat: AdminChatMessage[];
   userTags: UserTag[];
   userTagAssignments: Record<string, number[]>; // email -> tagIds
+  affiliations: Affiliation[];
 }
 
 interface StoreContextType {
@@ -172,6 +182,8 @@ interface StoreContextType {
   deleteUserTag: (id: number) => void;
   assignUserTag: (email: string, tagId: number) => void;
   unassignUserTag: (email: string, tagId: number) => void;
+  affiliateProduct: (productId: number) => void;
+  unaffiliateProduct: (productId: number) => void;
   isDark: boolean;
   toggleDark: () => void;
 }
@@ -212,6 +224,7 @@ function loadState(): AppState {
       return {
         userTags: [],
         userTagAssignments: {},
+        affiliations: [],
         ...parsed,
         config: {
           ...defaultConfig,
@@ -238,6 +251,7 @@ function loadState(): AppState {
     adminChat: [],
     userTags: [],
     userTagAssignments: {},
+    affiliations: [],
   };
 }
 
