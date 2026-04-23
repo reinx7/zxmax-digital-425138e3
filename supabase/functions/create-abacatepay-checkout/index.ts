@@ -22,36 +22,61 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://zxmax-digital.lovable.app";
 
-    const response = await fetch("https://api.abacatepay.com/v1/billing/create", {
+    // First create the customer
+    const customerRes = await fetch("https://api.abacatepay.com/v1/customers/create", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        frequency: "ONE_TIME",
-        methods: ["PIX"],
-        products: [
-          {
-            externalId: `product_${Date.now()}`,
-            name: productName,
-            quantity: 1,
-            price: priceInCents,
-          },
-        ],
-        returnUrl: `${origin}/?payment=success`,
-        completionUrl: `${origin}/?payment=success`,
-        customerId: null,
-        customer: {
-          email: buyerEmail,
-        },
+        name: buyerEmail.split("@")[0],
+        email: buyerEmail,
+        cellphone: "",
+        taxId: "",
       }),
     });
 
+    const customerData = await customerRes.json();
+    console.log("Customer response:", JSON.stringify(customerData));
+
+    // Extract customer ID - handle different response shapes
+    const customerId = customerData?.data?.id || customerData?.id || null;
+
+    // Create billing with or without customerId
+    const billingBody: Record<string, unknown> = {
+      frequency: "ONE_TIME",
+      methods: ["PIX"],
+      products: [
+        {
+          externalId: `product_${Date.now()}`,
+          name: productName,
+          quantity: 1,
+          price: priceInCents,
+        },
+      ],
+      returnUrl: `${origin}/?payment=success`,
+      completionUrl: `${origin}/?payment=success`,
+    };
+
+    if (customerId) {
+      billingBody.customerId = customerId;
+    }
+
+    const response = await fetch("https://api.abacatepay.com/v1/billing/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(billingBody),
+    });
+
     const data = await response.json();
+    console.log("Billing response:", JSON.stringify(data));
 
     if (!response.ok) {
-      throw new Error(data.error || data.message || "Erro ao criar cobrança AbacatePay");
+      throw new Error(data.error || data.message || JSON.stringify(data));
     }
 
     return new Response(JSON.stringify({ url: data.url || data.data?.url }), {
