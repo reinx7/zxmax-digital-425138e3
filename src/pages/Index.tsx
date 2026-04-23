@@ -77,7 +77,6 @@ function AppGate() {
           return;
         }
         if (data.password && data.user?.email) {
-          // New user created — sign in with generated password
           supabase.auth.signInWithPassword({
             email: data.user.email,
             password: data.password,
@@ -87,7 +86,7 @@ function AppGate() {
             setDiscordLoading(false);
           });
         } else {
-          toast.info("Conta Discord encontrada. Use seu e-mail para fazer login.");
+          toast.error("Erro inesperado no login Discord.");
           setDiscordLoading(false);
         }
       });
