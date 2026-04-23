@@ -47,6 +47,7 @@ function Dashboard() {
       <main className="max-w-7xl mx-auto px-4 py-6">
         {view === "store" && <StoreView />}
         {view === "inventory" && <InventoryView />}
+        {view === "affiliates" && <AffiliatesView />}
         {view === "purchases" && <MyPurchasesView />}
         {view === "support" && <SupportView />}
         {view === "admin" && isAdmin && <AdminView />}
