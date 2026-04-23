@@ -165,9 +165,14 @@ export default function InventoryView() {
                 <div className="flex-1 min-w-0">
                   <h4 className="font-bold text-foreground truncate">{p.name}</h4>
                   <p className="text-xs text-muted-foreground">{p.category} · {p.sales} vendas</p>
-                  {hasPending && (
-                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full mt-1 inline-block">Vendas pendentes</span>
-                  )}
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {hasPending && (
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Vendas pendentes</span>
+                    )}
+                    {p.affiliateEnabled && (
+                      <span className="text-[10px] font-bold text-accent-foreground bg-accent/40 px-2 py-0.5 rounded-full">Afiliáveis · {p.affiliateCommission}%</span>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-foreground">R$ {p.price.toFixed(2)}</p>
@@ -180,6 +185,74 @@ export default function InventoryView() {
           })}
         </div>
       )}
+
+      {/* My Affiliations modal */}
+      {showAffiliated && (
+        <div className="fixed inset-0 z-[60] bg-card md:bg-foreground/40 md:backdrop-blur-sm md:flex md:items-center md:justify-center md:p-4" onClick={() => setShowAffiliated(false)}>
+          <div className="h-full w-full overflow-y-auto p-6 pb-24 md:glass-card md:w-full md:max-w-2xl md:max-h-[90vh] md:h-auto md:pb-6 md:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Link2 className="w-5 h-5 text-primary" />
+                <h3 className="text-xl font-bold text-foreground">Produtos Afiliados</h3>
+              </div>
+              <button onClick={() => setShowAffiliated(false)} className="rounded-xl p-2 hover:bg-muted">
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+            <MyAffiliationsList />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MyAffiliationsList() {
+  const { state } = useStore();
+  if (!state.currentUser) return null;
+  const myAffs = (state.affiliations || []).filter((a) => a.affiliateEmail === state.currentUser!.email);
+  const items = myAffs
+    .map((a) => ({ aff: a, product: state.products.find((p) => p.id === a.productId) }))
+    .filter((x) => x.product);
+
+  if (items.length === 0) {
+    return (
+      <div className="bg-card md:bg-muted rounded-2xl p-8 text-center border border-border/40">
+        <Link2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+        <p className="text-foreground font-bold">Você ainda não se afiliou a nenhum produto.</p>
+        <p className="text-xs text-muted-foreground mt-1">Acesse a aba Afiliados para descobrir produtos disponíveis.</p>
+      </div>
+    );
+  }
+
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const refCode = encodeURIComponent(state.currentUser.email);
+
+  return (
+    <div className="space-y-3">
+      {items.map(({ aff, product }) => {
+        const link = `${origin}/?ref=${refCode}&product=${product!.id}`;
+        return (
+          <div key={aff.id} className="bg-muted rounded-2xl p-4">
+            <div className="flex gap-3 items-center">
+              <img src={product!.image} className="w-14 h-14 rounded-xl object-cover" alt={product!.name} />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-foreground truncate">{product!.name}</p>
+                <p className="text-xs text-muted-foreground">Comissão: <span className="text-primary font-bold">{product!.affiliateCommission || 0}%</span></p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-3">
+              <input readOnly value={link} className="flex-1 p-2 rounded-lg bg-card text-foreground text-xs border border-border/40 outline-none" />
+              <button
+                onClick={() => { navigator.clipboard.writeText(link); toast.success("Link copiado!"); }}
+                className="btn-gradient px-3 py-2 text-xs flex items-center gap-1"
+              >
+                <Copy className="w-3.5 h-3.5" /> Copiar
+              </button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
