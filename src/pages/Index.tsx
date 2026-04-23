@@ -11,10 +11,11 @@ import InventoryView from "@/components/InventoryView";
 import SupportView from "@/components/SupportView";
 import AdminView from "@/components/AdminView";
 import MyPurchasesView from "@/components/MyPurchasesView";
+import AffiliatesView from "@/components/AffiliatesView";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-type View = "store" | "inventory" | "purchases" | "support" | "admin" | "profile";
+type View = "store" | "inventory" | "purchases" | "support" | "admin" | "profile" | "affiliates";
 
 function Dashboard() {
   const { state, markPurchasePaid } = useStore();
@@ -24,6 +25,13 @@ function Dashboard() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+
+    // Track affiliate referral (last click wins)
+    const ref = params.get("ref");
+    if (ref) {
+      try { localStorage.setItem("zxmax_ref", ref); } catch {}
+    }
+
     if (params.get("payment") === "success" && state.currentUser) {
       const pendingPurchase = state.purchases
         .filter((p) => p.buyerEmail === state.currentUser!.email && p.status === "pending")
@@ -46,6 +54,7 @@ function Dashboard() {
       <main className="max-w-7xl mx-auto px-4 py-6">
         {view === "store" && <StoreView />}
         {view === "inventory" && <InventoryView />}
+        {view === "affiliates" && <AffiliatesView />}
         {view === "purchases" && <MyPurchasesView />}
         {view === "support" && <SupportView />}
         {view === "admin" && isAdmin && <AdminView />}

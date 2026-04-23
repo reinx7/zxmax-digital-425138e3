@@ -55,6 +55,15 @@ export interface Product {
   deliveryContent?: string;
   variations?: ProductVariation[];
   questions?: ProductQuestion[];
+  affiliateEnabled?: boolean;
+  affiliateCommission?: number; // percent 0-100
+}
+
+export interface Affiliation {
+  id: number;
+  productId: number;
+  affiliateEmail: string;
+  createdAt: string;
 }
 
 export interface PurchaseMessage {
@@ -132,6 +141,7 @@ interface AppState {
   adminChat: AdminChatMessage[];
   userTags: UserTag[];
   userTagAssignments: Record<string, number[]>; // email -> tagIds
+  affiliations: Affiliation[];
 }
 
 interface StoreContextType {
@@ -172,6 +182,8 @@ interface StoreContextType {
   deleteUserTag: (id: number) => void;
   assignUserTag: (email: string, tagId: number) => void;
   unassignUserTag: (email: string, tagId: number) => void;
+  affiliateProduct: (productId: number) => void;
+  unaffiliateProduct: (productId: number) => void;
   isDark: boolean;
   toggleDark: () => void;
 }
@@ -212,6 +224,7 @@ function loadState(): AppState {
       return {
         userTags: [],
         userTagAssignments: {},
+        affiliations: [],
         ...parsed,
         config: {
           ...defaultConfig,
@@ -238,6 +251,7 @@ function loadState(): AppState {
     adminChat: [],
     userTags: [],
     userTagAssignments: {},
+    affiliations: [],
   };
 }
 
@@ -562,6 +576,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return { ...s, userTagAssignments: next };
     });
 
+  const affiliateProduct = (productId: number) => {
+    if (!state.currentUser) return;
+    setState((s) => {
+      if ((s.affiliations || []).some((a) => a.productId === productId && a.affiliateEmail === s.currentUser!.email)) {
+        return s;
+      }
+      const aff: Affiliation = {
+        id: Date.now(),
+        productId,
+        affiliateEmail: s.currentUser!.email,
+        createdAt: new Date().toISOString(),
+      };
+      return { ...s, affiliations: [...(s.affiliations || []), aff] };
+    });
+  };
+
+  const unaffiliateProduct = (productId: number) => {
+    if (!state.currentUser) return;
+    setState((s) => ({
+      ...s,
+      affiliations: (s.affiliations || []).filter(
+        (a) => !(a.productId === productId && a.affiliateEmail === s.currentUser!.email)
+      ),
+    }));
+  };
+
   const toggleDark = () => setIsDark((d) => !d);
 
   return (
@@ -575,6 +615,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         sendPurchaseMessage, confirmDelivery, openDispute, reviewPurchase,
         addProductQuestion, answerProductQuestion,
         deleteNotice, createUserTag, deleteUserTag, assignUserTag, unassignUserTag,
+        affiliateProduct, unaffiliateProduct,
         isDark, toggleDark,
       }}
     >
