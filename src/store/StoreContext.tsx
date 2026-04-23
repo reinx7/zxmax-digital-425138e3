@@ -576,6 +576,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return { ...s, userTagAssignments: next };
     });
 
+  const affiliateProduct = (productId: number) => {
+    if (!state.currentUser) return;
+    setState((s) => {
+      if ((s.affiliations || []).some((a) => a.productId === productId && a.affiliateEmail === s.currentUser!.email)) {
+        return s;
+      }
+      const aff: Affiliation = {
+        id: Date.now(),
+        productId,
+        affiliateEmail: s.currentUser!.email,
+        createdAt: new Date().toISOString(),
+      };
+      return { ...s, affiliations: [...(s.affiliations || []), aff] };
+    });
+  };
+
+  const unaffiliateProduct = (productId: number) => {
+    if (!state.currentUser) return;
+    setState((s) => ({
+      ...s,
+      affiliations: (s.affiliations || []).filter(
+        (a) => !(a.productId === productId && a.affiliateEmail === s.currentUser!.email)
+      ),
+    }));
+  };
+
   const toggleDark = () => setIsDark((d) => !d);
 
   return (
@@ -589,6 +615,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         sendPurchaseMessage, confirmDelivery, openDispute, reviewPurchase,
         addProductQuestion, answerProductQuestion,
         deleteNotice, createUserTag, deleteUserTag, assignUserTag, unassignUserTag,
+        affiliateProduct, unaffiliateProduct,
         isDark, toggleDark,
       }}
     >
