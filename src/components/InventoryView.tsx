@@ -12,11 +12,14 @@ interface Variation {
 export default function InventoryView() {
   const { state, addProduct } = useStore();
   const [showForm, setShowForm] = useState(false);
+  const [showAffiliated, setShowAffiliated] = useState(false);
   const [form, setForm] = useState({
     name: "", category: state.config.categories[0] || "", description: "", price: "",
     image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400",
     banner: "",
     deliveryType: "manual" as "auto" | "manual", deliveryContent: "",
+    affiliateEnabled: false,
+    affiliateCommission: "10",
   });
   const [variations, setVariations] = useState<Variation[]>([]);
 
@@ -28,6 +31,10 @@ export default function InventoryView() {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.price) return toast.error("Preencha nome e preço.");
+    const commission = parseFloat(form.affiliateCommission);
+    if (form.affiliateEnabled && (isNaN(commission) || commission <= 0 || commission > 90)) {
+      return toast.error("Defina uma comissão de afiliado válida (1-90%).");
+    }
     const parsedVariations = variations.filter((v) => v.name && v.price).map((v) => ({ name: v.name, price: parseFloat(v.price) }));
     addProduct({
       name: form.name, category: form.category, description: form.description,
@@ -35,10 +42,12 @@ export default function InventoryView() {
       seller: state.currentUser!.name, sellerEmail: state.currentUser!.email,
       deliveryType: form.deliveryType, deliveryContent: form.deliveryContent,
       variations: parsedVariations.length > 0 ? parsedVariations : undefined,
+      affiliateEnabled: form.affiliateEnabled,
+      affiliateCommission: form.affiliateEnabled ? commission : undefined,
     });
     toast.success("Produto criado! Aguardando aprovação do admin.");
     setShowForm(false);
-    setForm({ name: "", category: state.config.categories[0] || "", description: "", price: "", image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400", banner: "", deliveryType: "manual", deliveryContent: "" });
+    setForm({ name: "", category: state.config.categories[0] || "", description: "", price: "", image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400", banner: "", deliveryType: "manual", deliveryContent: "", affiliateEnabled: false, affiliateCommission: "10" });
     setVariations([]);
   };
 
