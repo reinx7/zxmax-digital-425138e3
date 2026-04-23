@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useStore } from "@/store/StoreContext";
 import { PackageEmoji } from "@/components/CustomEmojis";
-import { Plus, X, Trash2 } from "lucide-react";
+import { Plus, X, Trash2, Link2, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface Variation {
@@ -53,7 +53,7 @@ export default function InventoryView() {
 
   return (
     <div className="animate-fade-in-up">
-      <div className="flex justify-between items-end mb-10">
+      <div className="flex flex-wrap justify-between items-end gap-4 mb-10">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl md:text-4xl font-black text-foreground">Meus Anúncios</h1>
@@ -61,9 +61,14 @@ export default function InventoryView() {
           </div>
           <p className="text-muted-foreground">Gerencie seus produtos e vendas.</p>
         </div>
-        <button onClick={() => setShowForm(true)} className="btn-gradient px-5 py-3 text-sm flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Novo Produto
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowAffiliated(true)} className="px-5 py-3 text-sm flex items-center gap-2 rounded-xl bg-card border border-border/40 text-foreground hover:bg-muted transition">
+            <Link2 className="w-4 h-4" /> Produtos Afiliados
+          </button>
+          <button onClick={() => setShowForm(true)} className="btn-gradient px-5 py-3 text-sm flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Novo Produto
+          </button>
+        </div>
       </div>
 
       {showForm && (
