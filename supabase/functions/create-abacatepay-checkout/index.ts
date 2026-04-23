@@ -46,6 +46,7 @@ serve(async (req) => {
         name: buyerEmail.split("@")[0] || "Comprador",
         email: buyerEmail,
         cellphone: "",
+        taxId: "",
       },
     };
 
