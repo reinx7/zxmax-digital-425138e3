@@ -25,6 +25,13 @@ function Dashboard() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+
+    // Track affiliate referral (last click wins)
+    const ref = params.get("ref");
+    if (ref) {
+      try { localStorage.setItem("zxmax_ref", ref); } catch {}
+    }
+
     if (params.get("payment") === "success" && state.currentUser) {
       const pendingPurchase = state.purchases
         .filter((p) => p.buyerEmail === state.currentUser!.email && p.status === "pending")
