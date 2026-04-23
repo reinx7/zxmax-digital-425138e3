@@ -103,6 +103,34 @@ export default function InventoryView() {
                 ))}
               </div>
 
+              {/* Affiliates */}
+              <div className="border border-border/40 rounded-xl p-3">
+                <label className="flex items-center gap-2 text-sm text-foreground font-bold">
+                  <input
+                    type="checkbox"
+                    checked={form.affiliateEnabled}
+                    onChange={(e) => setForm({ ...form, affiliateEnabled: e.target.checked })}
+                  />
+                  Permitir afiliados
+                </label>
+                {form.affiliateEnabled && (
+                  <div className="mt-2">
+                    <label className="text-xs text-muted-foreground block mb-1">Comissão do afiliado (%)</label>
+                    <input
+                      value={form.affiliateCommission}
+                      onChange={(e) => setForm({ ...form, affiliateCommission: e.target.value })}
+                      type="number"
+                      min="1"
+                      max="90"
+                      placeholder="Ex: 10"
+                      className="w-full p-2 rounded-lg bg-muted text-foreground text-sm border-none outline-none focus:ring-2 ring-primary"
+                      required
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">Porcentagem do valor que o afiliado recebe por cada venda gerada.</p>
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-3">
                 <label className="flex items-center gap-2 text-sm text-foreground">
                   <input type="radio" name="delivery" checked={form.deliveryType === "manual"} onChange={() => setForm({ ...form, deliveryType: "manual" })} /> Manual
