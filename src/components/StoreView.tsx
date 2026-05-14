@@ -1,9 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useStore, ProductVariation } from "@/store/StoreContext";
 import { StarEmoji, FireEmoji, RocketEmoji, ShieldEmoji, ChatEmoji } from "@/components/CustomEmojis";
-import { Search, X, CheckCircle, AlertTriangle, Image as ImageIcon, ShoppingCart, MessageSquare, Star, Info } from "lucide-react";
+import { Search, X, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, Image as ImageIcon, ShoppingCart, MessageSquare, Star, Info, Copy, Clock, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import UserProfileModal from "@/components/UserProfileModal";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function StoreView() {
   const { state, addProductQuestion, buyProduct } = useStore();
@@ -14,6 +15,8 @@ export default function StoreView() {
   const [selectedSellerEmail, setSelectedSellerEmail] = useState<string | null>(null);
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation | null>(null);
   const [detailTab, setDetailTab] = useState<"info" | "reviews" | "questions">("info");
+  const [paymentModal, setPaymentModal] = useState<{ qrCodeBase64: string; qrCodeText: string; transactionId: string; amount: number } | null>(null);
+  const [paymentPolling, setPaymentPolling] = useState(false);
 
   const approved = state.products.filter((p) => p.approved);
   const categories = ["Todos", ...state.config.categories];
@@ -41,40 +44,45 @@ export default function StoreView() {
 
   const handleBuy = async () => {
     if (!product || !state.currentUser) {
-      toast.error("Você precisa estar logado para comprar.");
+      toast.error("Voce precisa estar logado para comprar.");
       return;
     }
 
     const price = selectedVariation ? selectedVariation.price : product.price;
 
     if (price < 0.50) {
-      toast.error("O preço mínimo para pagamento é R$ 0,50.");
+      toast.error("O preco minimo para pagamento e R$ 0,50.");
       return;
     }
 
     setBuyLoading(true);
     try {
       const purchaseId = await buyProduct(product.id, selectedVariation || undefined);
-      if (!purchaseId) throw new Error("Não foi possível registrar a compra.");
-      const { supabase } = await import("@/integrations/supabase/client");
+      if (!purchaseId) throw new Error("Nao foi possivel registrar a compra.");
       const { data, error } = await supabase.functions.invoke("create-evopay-checkout", {
         body: {
           productName: selectedVariation ? `${product.name} - ${selectedVariation.name}` : product.name,
           priceInCents: Math.round(price * 100),
           buyerEmail: state.currentUser.email,
           buyerName: state.currentUser.name || state.currentUser.email.split("@")[0],
+          purchaseId,
         },
       });
 
       if (error) throw error;
 
-      if (data?.url) {
-        toast.success("Redirecionando para pagamento...");
-        window.location.href = data.url;
+      if (data?.success && (data.qrCodeBase64 || data.qrCodeText)) {
+        setPaymentModal({
+          qrCodeBase64: data.qrCodeBase64 || "",
+          qrCodeText: data.qrCodeText || "",
+          transactionId: data.transactionId || "",
+          amount: price,
+        });
+        toast.success("QR Code gerado! Escaneie para pagar.");
       } else if (data?.error) {
-        toast.error("Erro ao criar sessão de pagamento: " + data.error);
+        toast.error("Erro ao criar pagamento: " + data.error);
       } else {
-        toast.error("Erro ao criar sessão de pagamento. Tente novamente.");
+        toast.error("Erro ao criar pagamento. Tente novamente.");
       }
     } catch (err: any) {
       toast.error("Erro ao conectar com pagamento: " + (err.message || "Tente novamente."));
@@ -82,6 +90,34 @@ export default function StoreView() {
       setBuyLoading(false);
     }
   };
+
+  // Poll for payment status
+  useEffect(() => {
+    if (!paymentModal?.transactionId) return;
+    setPaymentPolling(true);
+    const interval = setInterval(async () => {
+      const { data: purchase } = await supabase
+        .from("purchases")
+        .select("status")
+        .eq("product_id", product?.id)
+        .eq("buyer_id", state.currentUser?.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (purchase && purchase.status !== "pending") {
+        setPaymentPolling(false);
+        setPaymentModal(null);
+        clearInterval(interval);
+        if (purchase.status === "paid") {
+          toast.success("Pagamento confirmado! Aguardando entrega.");
+        } else if (purchase.status === "delivered") {
+          toast.success("Pagamento confirmado e produto entregue!");
+        }
+      }
+    }, 5000);
+    return () => { clearInterval(interval); setPaymentPolling(false); };
+  }, [paymentModal?.transactionId]);
 
   const handleSendQuestion = () => {
     if (!question.trim() || !product) return;
@@ -332,6 +368,54 @@ export default function StoreView() {
 
       {selectedSellerEmail && (
         <UserProfileModal open={!!selectedSellerEmail} onClose={() => setSelectedSellerEmail(null)} userEmail={selectedSellerEmail} />
+      )}
+
+      {/* Payment QR Code Modal */}
+      {paymentModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-foreground/60 backdrop-blur-md" onClick={() => { setPaymentModal(null); setPaymentPolling(false); }}>
+          <div className="glass-card w-full max-w-sm p-6 bg-card animate-fade-in-up text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-foreground">Pagamento Pix</h3>
+              <button onClick={() => { setPaymentModal(null); setPaymentPolling(false); }} className="p-2 hover:bg-muted rounded-xl"><X className="w-5 h-5 text-muted-foreground" /></button>
+            </div>
+
+            <p className="text-2xl font-black text-foreground mb-4">R$ {paymentModal.amount.toFixed(2)}</p>
+
+            {paymentModal.qrCodeBase64 ? (
+              <div className="bg-white rounded-2xl p-4 mb-4 inline-block">
+                <img src={`data:image/png;base64,${paymentModal.qrCodeBase64}`} alt="QR Code Pix" className="w-48 h-48 mx-auto" />
+              </div>
+            ) : paymentModal.qrCodeText ? (
+              <div className="bg-muted rounded-2xl p-4 mb-4">
+                <QrCode className="w-16 h-16 mx-auto text-muted-foreground mb-2" />
+                <p className="text-xs text-muted-foreground">Copie o codigo Pix abaixo:</p>
+              </div>
+            ) : null}
+
+            {paymentModal.qrCodeText && (
+              <div className="flex items-center gap-2 bg-muted rounded-xl p-3 mb-4">
+                <p className="text-xs text-foreground font-mono truncate flex-1">{paymentModal.qrCodeText}</p>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(paymentModal.qrCodeText); toast.success("Codigo Pix copiado!"); }}
+                  className="shrink-0 p-2 hover:bg-card rounded-lg transition"
+                >
+                  <Copy className="w-4 h-4 text-primary" />
+                </button>
+              </div>
+            )}
+
+            {paymentPolling && (
+              <div className="flex items-center justify-center gap-2 text-muted-foreground text-xs">
+                <Clock className="w-4 h-4 animate-spin" />
+                <span>Aguardando pagamento...</span>
+              </div>
+            )}
+
+            <p className="text-[10px] text-muted-foreground mt-3">
+              Abra o app do seu banco e escaneie o QR Code ou copie o codigo Pix.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );

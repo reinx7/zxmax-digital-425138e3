@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { useStore } from "@/store/StoreContext";
 import { useAuth } from "@/hooks/useAuth";
 import { StarEmoji, MoneyEmoji, DoorEmoji, CameraEmoji, KeyEmoji } from "@/components/CustomEmojis";
-import { X, Edit, Upload, Shield } from "lucide-react";
+import { X, CreditCard as Edit, Upload, Shield, CircleCheck as CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -43,11 +43,11 @@ export default function ProfileModal({ open, onClose }: Props) {
   };
 
   const handleWithdraw = (method: "normal" | "instant") => {
-    if (!storeUser.isVerified) return toast.error("Você precisa ter seus documentos aprovados pelo admin para sacar.");
-    if (storeUser.balance < 3.50) return toast.error("Saldo mínimo para saque é R$ 3,50.");
+    if (!storeUser.isVerified) return toast.error("Voce precisa ter seus documentos aprovados pelo admin para sacar.");
+    if (storeUser.balance < 3.50) return toast.error("Saldo minimo para saque e R$ 3,50.");
     if (!profile?.pix_key && !storeUser.pixKey) return toast.error("Cadastre sua chave Pix antes de solicitar saque.");
     requestWithdraw(method);
-    toast.success("Saque solicitado! Processamento em 7-10 dias úteis.");
+    toast.success("Saque solicitado! O admin ira aprovar e o dinheiro chegara em 5 a 7 dias uteis na sua conta.");
   };
 
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,9 +125,13 @@ export default function ProfileModal({ open, onClose }: Props) {
               </div>
             )}
             <p className="text-muted-foreground text-xs mt-0.5 font-mono break-all">ID: {storeUser.publicId}</p>
-            {storeUser.isVerified && (
+            {storeUser.isVerified ? (
               <p className="text-success text-sm mt-0.5 font-semibold flex items-center gap-1">
-                <Shield className="w-3 h-3" /> Vendedor Verificado
+                <CheckCircle className="w-3 h-3" /> Vendedor Verificado
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-sm mt-0.5 font-semibold flex items-center gap-1">
+                <Shield className="w-3 h-3" /> Nao Verificado
               </p>
             )}
           </div>
@@ -175,7 +179,7 @@ export default function ProfileModal({ open, onClose }: Props) {
           <button onClick={() => handleWithdraw("normal")} className="w-full flex items-center justify-between p-4 bg-foreground text-background rounded-xl font-bold text-sm hover:opacity-90 transition">
             <div className="flex items-center gap-2">
               <MoneyEmoji className="w-5 h-5" />
-              <span>Sacar Saldo (7-10 dias úteis)</span>
+              <span>Sacar Saldo (5-7 dias uteis)</span>
             </div>
           </button>
 

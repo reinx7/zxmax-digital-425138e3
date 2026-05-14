@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useStore, Purchase, Product } from "@/store/StoreContext";
 import { PackageEmoji } from "@/components/CustomEmojis";
-import { Plus, X, Trash2, Upload, Users, Eye, CheckCircle, Clock, MessageSquare } from "lucide-react";
+import { Plus, X, Trash2, Upload, Users, Eye, CircleCheck as CheckCircle, Clock, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -65,8 +65,8 @@ export default function InventoryView({ onOpenChat }: { onOpenChat?: (purchaseId
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!state.currentUser?.isVerified) return toast.error("Sua conta precisa ser verificada pelo admin para criar anúncios.");
-    if (!form.name || !form.price) return toast.error("Preencha nome e preço.");
+    if (!state.currentUser?.isVerified) return toast.error("Sua conta precisa ser verificada pelo admin para criar anuncios. Envie seus documentos no perfil.");
+    if (!form.name || !form.price) return toast.error("Preencha nome e preco.");
     const parsedVariations = variations.filter((v) => v.name && v.price).map((v) => ({ name: v.name, price: parseFloat(v.price) }));
     addProduct({
       name: form.name, category: form.category, description: form.description,

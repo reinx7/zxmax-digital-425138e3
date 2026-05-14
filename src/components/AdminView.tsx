@@ -142,26 +142,46 @@ export default function AdminView() {
       {/* Withdrawals Tab */}
       {tab === "withdrawals" && (
         <div className="space-y-4">
-          <h3 className="font-bold text-foreground">Solicitações de Saque ({pendingWithdrawals.length})</h3>
+          <h3 className="font-bold text-foreground">Solicitacoes de Saque ({pendingWithdrawals.length})</h3>
           {pendingWithdrawals.length === 0 ? (
             <div className="bg-card rounded-3xl p-10 text-center border-2 border-dashed border-border">
-              <p className="text-muted-foreground">Nenhuma solicitação de saque pendente.</p>
+              <p className="text-muted-foreground">Nenhuma solicitacao de saque pendente.</p>
             </div>
           ) : (
             pendingWithdrawals.map((w) => (
               <div key={w.id} className="glass-card p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase">{w.method === "instant" ? "Saque Instantâneo" : "Saque Normal"}</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase">{w.method === "instant" ? "Saque Instantaneo" : "Saque Normal"}</p>
                   <p className="text-xl font-black text-foreground">R$ {w.amount.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Usuário: {w.userEmail}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Usuario: {w.userEmail}</p>
                   <p className="text-[10px] text-muted-foreground font-mono">ID: {w.userId}</p>
+                  <p className="text-[10px] text-primary font-bold mt-1">Ao aprovar, o dinheiro chegara em 5-7 dias uteis na conta do usuario.</p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => { approveWithdraw(w.id); toast.success("Saque aprovado!"); }} className="p-3 bg-success/10 text-success rounded-xl hover:bg-success/20 transition"><Check className="w-5 h-5" /></button>
-                  <button onClick={() => { rejectWithdraw(w.id); toast.error("Saque rejeitado."); }} className="p-3 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive/20 transition"><X className="w-5 h-5" /></button>
+                  <button onClick={() => { approveWithdraw(w.id); toast.success("Saque aprovado! Dinheiro chegara em 5-7 dias uteis."); }} className="p-3 bg-success/10 text-success rounded-xl hover:bg-success/20 transition"><Check className="w-5 h-5" /></button>
+                  <button onClick={() => { rejectWithdraw(w.id); toast.error("Saque rejeitado. Saldo devolvido."); }} className="p-3 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive/20 transition"><X className="w-5 h-5" /></button>
                 </div>
               </div>
             ))
+          )}
+          {/* Show all withdrawals history */}
+          {state.withdrawals.filter(w => w.status !== "pending").length > 0 && (
+            <div className="mt-6">
+              <h4 className="font-bold text-foreground mb-3">Historico de Saques</h4>
+              <div className="space-y-2">
+                {state.withdrawals.filter(w => w.status !== "pending").map((w) => (
+                  <div key={w.id} className="p-3 bg-muted rounded-xl flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-foreground">{w.userEmail}</p>
+                      <p className="text-xs text-muted-foreground">R$ {w.amount.toFixed(2)} - {w.method === "instant" ? "Instantaneo" : "Normal"}</p>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${w.status === "approved" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                      {w.status === "approved" ? "Aprovado" : "Rejeitado"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -386,20 +406,20 @@ export default function AdminView() {
           {/* Evopay */}
           <div className="glass-card p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-foreground">Credenciais Evopay</h3>
+              <h3 className="font-bold text-foreground">Gateway Evopay (Pix)</h3>
               <div className="flex gap-1 bg-muted rounded-xl p-1">
-                <button onClick={() => setEvopayMode("automatic")} className={`px-3 py-1.5 text-xs font-bold rounded-lg ${evopayMode === "automatic" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Automático</button>
+                <button onClick={() => setEvopayMode("automatic")} className={`px-3 py-1.5 text-xs font-bold rounded-lg ${evopayMode === "automatic" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Automatico</button>
                 <button onClick={() => setEvopayMode("manual")} className={`px-3 py-1.5 text-xs font-bold rounded-lg ${evopayMode === "manual" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Manual</button>
               </div>
             </div>
             {evopayMode === "manual" ? (
               <div>
                 <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">API Key</label>
-                <input type="password" value={evopayApiKey} onChange={(e) => setEvopayApiKey(e.target.value)} placeholder="••••••••" className="w-full p-3 rounded-xl bg-muted text-sm text-foreground font-mono" />
-                <p className="text-[10px] text-muted-foreground mt-1">⚠️ Para uso real, configure também o secret EVOPAY_API_KEY no backend.</p>
+                <input type="password" value={evopayApiKey} onChange={(e) => setEvopayApiKey(e.target.value)} placeholder="EP_..." className="w-full p-3 rounded-xl bg-muted text-sm text-foreground font-mono" />
+                <p className="text-[10px] text-muted-foreground mt-1">Configure o secret EVOPAY_API_KEY no backend para uso real.</p>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">Usando a API Key configurada nos secrets do backend.</p>
+              <p className="text-xs text-muted-foreground">Usando a API Key configurada nos secrets do backend (EVOPAY_API_KEY).</p>
             )}
           </div>
 

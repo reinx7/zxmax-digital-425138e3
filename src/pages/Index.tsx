@@ -35,23 +35,13 @@ function Dashboard() {
   }, [isAdmin]);
 
   useEffect(() => {
+    // Payment confirmation is now handled by Evopay webhook
+    // This just cleans up URL params if present
     const params = new URLSearchParams(window.location.search);
-    if (params.get("payment") === "success" && user) {
-      const pendingPurchase = state.purchases
-        .filter((p) => p.buyerEmail === user.email && p.status === "pending")
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-      
-      if (pendingPurchase) {
-        markPurchasePaid(pendingPurchase.id);
-        toast.success("Pagamento confirmado!");
-        window.history.replaceState({}, "", "/");
-        setView("purchases");
-      }
-    } else if (params.get("payment") === "canceled") {
-      toast.info("Pagamento cancelado.");
+    if (params.get("payment") || params.get("txId")) {
       window.history.replaceState({}, "", "/");
     }
-  }, [user, state.purchases, markPurchasePaid]);
+  }, []);
 
   return (
     <div className="bg-gradient-page min-h-screen pb-24">

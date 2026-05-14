@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.create-evopay-checkout]
 verify_jwt = false
+
+[functions.evopay-webhook]
+verify_jwt = false

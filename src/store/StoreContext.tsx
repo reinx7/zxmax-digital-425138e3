@@ -301,13 +301,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (authUser && profile) {
       const userPublicId = publicIdFromProfile(profile, authUser.id);
+      const dbBalance = Number((profile as any).balance || 0);
+      const dbEarnings = Number((profile as any).earnings || 0);
+      const localBalance = state.userBalances[authUser.id] || 0;
+      const localEarnings = state.userEarnings[authUser.id] || 0;
+      const finalBalance = Math.max(dbBalance, localBalance);
+      const finalEarnings = Math.max(dbEarnings, localEarnings);
       const user: User = {
         id: authUser.id,
         publicId: userPublicId,
         email: profile.email || authUser.email || "",
         name: profile.display_name || authUser.email?.split("@")[0] || "",
-        balance: state.userBalances[authUser.id] || 0,
-        earnings: state.userEarnings[authUser.id] || 0,
+        balance: finalBalance,
+        earnings: finalEarnings,
         avatar: profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(profile.display_name || "")}`,
         isAdmin,
         pixKey: profile.pix_key || "",
@@ -316,13 +322,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setState((s) => ({
         ...s,
         currentUser: user,
+        userBalances: { ...(s.userBalances || {}), [authUser.id]: finalBalance },
+        userEarnings: { ...(s.userEarnings || {}), [authUser.id]: finalEarnings },
         userDirectory: {
           ...(s.userDirectory || {}),
           [authUser.id]: { userId: authUser.id, publicId: userPublicId, email: user.email, name: user.name },
         },
       }));
     }
-  }, [authUser, profile, isAdmin, state.userBalances, state.userEarnings]);
+  }, [authUser, profile, isAdmin]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -445,10 +453,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setState((s) => {
       const purchase = s.purchases.find((p) => p.id === id);
       if (!purchase) return s;
-      
+
       const product = s.products.find((p) => p.id === purchase.productId);
       const isAuto = product?.deliveryType === "auto";
-      
+
       const newPurchases = s.purchases.map((p) => {
         if (p.id === id) {
           const updated: Purchase = { ...p, status: "paid" as const };
@@ -456,16 +464,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             updated.status = "delivered";
             updated.messages = [
               ...(updated.messages || []),
-              { from: "System", text: `📦 ENTREGA_AUTO: ${product.deliveryContent}`, date: new Date().toISOString() }
+              { from: "System", text: `ENTREGA_AUTO: ${product.deliveryContent}`, date: new Date().toISOString() }
             ];
           }
+          // Update DB
+          void (supabase as any).from("purchases").update({
+            status: updated.status,
+            messages: updated.messages,
+          }).eq("id", id);
           return updated;
         }
         return p;
       });
 
       const newProducts = s.products.map((pr) => {
-        if (pr.id === purchase.productId) return { ...pr, sales: pr.sales + 1 };
+        if (pr.id === purchase.productId) {
+          void (supabase as any).from("products").update({ sales: pr.sales + 1 }).eq("id", pr.id);
+          return { ...pr, sales: pr.sales + 1 };
+        }
         return pr;
       });
 
@@ -478,6 +494,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...(s.userEarnings || {}),
         [purchase.sellerId]: (s.userEarnings?.[purchase.sellerId] || 0) + sellerNet,
       };
+
+      // Update seller balance in DB
+      void supabase.from("profiles").update({
+        balance: nextBalances[purchase.sellerId],
+        earnings: nextEarnings[purchase.sellerId],
+      }).eq("user_id", purchase.sellerId);
 
       return {
         ...s,
@@ -512,17 +534,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   const requestWithdraw = (method: "normal" | "instant") => {
-    if (!state.currentUser || state.currentUser.balance <= 0) return;
+    if (!state.currentUser) return;
+    if (!state.currentUser.isVerified) return;
+    if (state.currentUser.balance < 3.50) return;
+    if (!profile?.pix_key && !state.currentUser.pixKey) return;
     const fee = method === "instant" ? (state.currentUser.balance * state.config.instantFee) / 100 : 0;
+    const withdrawAmount = state.currentUser.balance - fee;
     const w: Withdrawal = {
       id: Date.now(),
       userEmail: state.currentUser.email,
       userId: state.currentUser.id,
-      amount: state.currentUser.balance - fee,
+      amount: withdrawAmount,
       method,
       status: "pending",
       createdAt: new Date().toISOString(),
     };
+    void (supabase as any).from("withdrawals").insert({
+      user_id: w.userId,
+      user_public_id: state.currentUser.publicId,
+      user_email: w.userEmail,
+      amount: w.amount,
+      method: w.method,
+      status: "pending",
+      pix_key: profile?.pix_key || state.currentUser.pixKey || "",
+    });
     setState((s) => ({
       ...s,
       withdrawals: [...s.withdrawals, w],
@@ -531,27 +566,45 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const approveWithdraw = (id: number) =>
+  const approveWithdraw = (id: number) => {
+    const withdrawal = state.withdrawals.find((w) => w.id === id);
+    if (withdrawal) {
+      const estimatedDays = 7;
+      const estimatedDate = new Date();
+      estimatedDate.setDate(estimatedDate.getDate() + estimatedDays);
+      void (supabase as any).from("withdrawals").update({
+        status: "approved",
+        processed_at: new Date().toISOString(),
+        estimated_arrival: estimatedDate.toLocaleDateString("pt-BR"),
+      }).eq("id", id);
+    }
     setState((s) => ({
       ...s,
-      withdrawals: s.withdrawals.map((w) => (w.id === id ? { ...w, status: "approved" } : w)),
+      withdrawals: s.withdrawals.map((w) => (w.id === id ? { ...w, status: "approved" as const } : w)),
     }));
+  };
 
-  const rejectWithdraw = (id: number) =>
+  const rejectWithdraw = (id: number) => {
+    const withdrawal = state.withdrawals.find((w) => w.id === id);
+    if (withdrawal) {
+      void (supabase as any).from("withdrawals").update({ status: "rejected" }).eq("id", id);
+      void supabase.from("profiles").update({
+        balance: (state.userBalances?.[withdrawal.userId] || 0) + withdrawal.amount,
+      }).eq("user_id", withdrawal.userId);
+    }
     setState((s) => {
-      const withdrawal = s.withdrawals.find((w) => w.id === id);
       if (!withdrawal) return s;
-
       const refundedBalance = (s.userBalances?.[withdrawal.userId] || 0) + withdrawal.amount;
       return {
         ...s,
-        withdrawals: s.withdrawals.map((w) => (w.id === id ? { ...w, status: "rejected" } : w)),
+        withdrawals: s.withdrawals.map((w) => (w.id === id ? { ...w, status: "rejected" as const } : w)),
         userBalances: { ...(s.userBalances || {}), [withdrawal.userId]: refundedBalance },
         currentUser: s.currentUser?.id === withdrawal.userId
           ? { ...s.currentUser, balance: refundedBalance }
           : s.currentUser,
       };
     });
+  };
 
   const updateConfig = (c: Partial<AppConfig>) =>
     setState((s) => ({ ...s, config: { ...s.config, ...c } }));
@@ -787,6 +840,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const verifyUser = (userId: string) => {
     void supabase.from("profiles").update({ is_verified_seller: true }).eq("user_id", userId);
+    void supabase.from("user_roles").upsert({ user_id: userId, role: "user" });
 
     setState(s => ({
       ...s,

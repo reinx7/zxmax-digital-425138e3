@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useStore } from "@/store/StoreContext";
 import { StarEmoji } from "@/components/CustomEmojis";
-import { X, Shield, CheckCircle } from "lucide-react";
+import { X, Shield, CircleCheck as CheckCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   open: boolean;
@@ -11,20 +12,32 @@ interface Props {
 
 export default function UserProfileModal({ open, onClose, userEmail }: Props) {
   const { state } = useStore();
-  
-  // Find seller info from products or purchases
+  const [isVerified, setIsVerified] = useState(false);
+
   const sellerProduct = state.products.find((p) => p.sellerEmail === userEmail);
   const sellerName = sellerProduct?.seller || userEmail.split("@")[0];
   const sellerUuid = sellerProduct?.sellerId || state.purchases.find((p) => p.sellerEmail === userEmail)?.sellerId || "";
-  const sellerId = sellerProduct?.sellerPublicId || state.purchases.find((p) => p.sellerEmail === userEmail)?.sellerPublicId || state.userDirectory?.[sellerUuid]?.publicId || "ID indisponível";
-  
+  const sellerId = sellerProduct?.sellerPublicId || state.purchases.find((p) => p.sellerEmail === userEmail)?.sellerPublicId || state.userDirectory?.[sellerUuid]?.publicId || "ID indisponivel";
+
   const sellerProducts = state.products.filter((p) => p.sellerEmail === userEmail && p.approved);
   const sellerPurchases = state.purchases.filter((p) => p.sellerEmail === userEmail);
   const sellerReviews = sellerPurchases.filter((p) => p.reviewed);
-  
+
   const avgRating = sellerReviews.length > 0
     ? (sellerReviews.reduce((a, r) => a + (r.reviewStars || 0), 0) / sellerReviews.length).toFixed(1)
     : "Novo";
+
+  useEffect(() => {
+    if (!open || !sellerUuid) return;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("is_verified_seller")
+        .eq("user_id", sellerUuid)
+        .maybeSingle();
+      if (data) setIsVerified(!!data.is_verified_seller);
+    })();
+  }, [open, sellerUuid]);
 
   if (!open) return null;
 
@@ -38,20 +51,29 @@ export default function UserProfileModal({ open, onClose, userEmail }: Props) {
 
         <div className="flex flex-col items-center text-center mb-8">
           <div className="relative mb-4">
-            <img 
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(sellerName)}`} 
-              className="w-24 h-24 rounded-3xl bg-primary/10 border-4 border-card shadow-xl" 
-              alt={sellerName} 
+            <img
+              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(sellerName)}`}
+              className="w-24 h-24 rounded-3xl bg-primary/10 border-4 border-card shadow-xl"
+              alt={sellerName}
             />
-            <div className="absolute -bottom-2 -right-2 bg-success text-white p-1.5 rounded-xl shadow-lg">
-              <CheckCircle className="w-4 h-4" />
-            </div>
+            {isVerified && (
+              <div className="absolute -bottom-2 -right-2 bg-success text-white p-1.5 rounded-xl shadow-lg">
+                <CheckCircle className="w-4 h-4" />
+              </div>
+            )}
           </div>
           <h4 className="text-2xl font-black text-foreground">{sellerName}</h4>
-          <div className="flex items-center gap-1.5 mt-1 bg-muted px-3 py-1 rounded-full">
-            <Shield className="w-3 h-3 text-primary" />
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Vendedor Verificado</p>
-          </div>
+          {isVerified ? (
+            <div className="flex items-center gap-1.5 mt-1 bg-success/10 px-3 py-1 rounded-full">
+              <CheckCircle className="w-3 h-3 text-success" />
+              <p className="text-[10px] font-bold text-success uppercase tracking-wider">Vendedor Verificado</p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 mt-1 bg-muted px-3 py-1 rounded-full">
+              <Shield className="w-3 h-3 text-muted-foreground" />
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Nao Verificado</p>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-8">

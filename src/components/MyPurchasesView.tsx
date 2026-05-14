@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useStore, Purchase } from "@/store/StoreContext";
 import { ShoppingBagEmoji, StarEmoji, ChatEmoji } from "@/components/CustomEmojis";
-import { Search, X, MessageSquare, Star, Send, ShieldAlert, CheckCircle2, Clock, ExternalLink, Copy, ArrowLeft } from "lucide-react";
+import { Search, X, MessageSquare, Star, Send, ShieldAlert, CircleCheck as CheckCircle2, Clock, ExternalLink, Copy, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -90,7 +90,7 @@ export default function MyPurchasesView({ initialSelectedId }: { initialSelected
   if (selected && selectedProduct) {
     const chat = selected.messages || [];
     const isChatLocked = selected.status === "pending";
-    const deliveryMsg = chat.find((m) => m.text.startsWith("📦 ENTREGA_AUTO:"));
+    const deliveryMsg = chat.find((m) => m.text.startsWith("ENTREGA_AUTO:"));
 
     return (
       <div className="animate-fade-in-up max-w-2xl mx-auto">
@@ -121,9 +121,9 @@ export default function MyPurchasesView({ initialSelectedId }: { initialSelected
             {selectedProduct.deliveryType === "auto" ? (
               <div className="flex items-center gap-2 bg-muted rounded-xl p-3">
                 <p className="flex-1 text-sm text-foreground font-mono break-all">
-                  {deliveryMsg?.text.replace("📦 ENTREGA_AUTO: ", "") || selectedProduct.deliveryContent}
+                  {deliveryMsg?.text.replace("ENTREGA_AUTO: ", "") || selectedProduct.deliveryContent}
                 </p>
-                <button onClick={() => { navigator.clipboard.writeText(deliveryMsg?.text.replace("📦 ENTREGA_AUTO: ", "") || selectedProduct.deliveryContent || ""); toast.success("Copiado!"); }} className="shrink-0 p-1.5 hover:bg-card rounded-lg">
+                <button onClick={() => { navigator.clipboard.writeText(deliveryMsg?.text.replace("ENTREGA_AUTO: ", "") || selectedProduct.deliveryContent || ""); toast.success("Copiado!"); }} className="shrink-0 p-1.5 hover:bg-card rounded-lg">
                   <Copy className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
