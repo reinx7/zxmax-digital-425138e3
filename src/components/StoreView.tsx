@@ -57,11 +57,12 @@ export default function StoreView() {
       const purchaseId = await buyProduct(product.id, selectedVariation || undefined);
       if (!purchaseId) throw new Error("Não foi possível registrar a compra.");
       const { supabase } = await import("@/integrations/supabase/client");
-      const { data, error } = await supabase.functions.invoke("create-abacatepay-checkout", {
+      const { data, error } = await supabase.functions.invoke("create-evopay-checkout", {
         body: {
           productName: selectedVariation ? `${product.name} - ${selectedVariation.name}` : product.name,
           priceInCents: Math.round(price * 100),
           buyerEmail: state.currentUser.email,
+          buyerName: state.currentUser.name || state.currentUser.email.split("@")[0],
         },
       });
 
