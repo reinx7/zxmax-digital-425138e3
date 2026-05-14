@@ -3,5 +3,5 @@ project_id = "dbekdedzgkfgtlytrnyw"
 [functions.discord-callback]
 verify_jwt = false
 
-[functions.create-abacatepay-checkout]
+[functions.create-evopay-checkout]
 verify_jwt = false

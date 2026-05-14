@@ -25,9 +25,9 @@ export default function AdminView() {
   const [discordRedirectUri, setDiscordRedirectUri] = useState(state.config.discordRedirectUri);
   const [discordScopes, setDiscordScopes] = useState(state.config.discordScopes);
   const [discordServerLink, setDiscordServerLink] = useState(state.config.discordServerLink);
-  // AbacatePay config
-  const [abacatepayMode, setAbacatepayMode] = useState(state.config.abacatepayMode);
-  const [abacatepayApiKey, setAbacatepayApiKey] = useState(state.config.abacatepayApiKey);
+  // Evopay config
+  const [evopayMode, setEvopayMode] = useState(state.config.evopayMode);
+  const [evopayApiKey, setEvopayApiKey] = useState(state.config.evopayApiKey);
   // Auth mode
   const [authMode, setAuthMode] = useState(state.config.authMode);
   const [banIdentifier, setBanIdentifier] = useState("");
@@ -47,7 +47,7 @@ export default function AdminView() {
       authMode,
       discordMode, discordClientId, discordClientSecret, discordRedirectUri, discordScopes, discordServerLink,
       discordLink: discordServerLink,
-      abacatepayMode, abacatepayApiKey,
+      evopayMode, evopayApiKey,
     });
     toast.success("Configurações salvas!");
   };
@@ -344,7 +344,7 @@ export default function AdminView() {
                 <button onClick={() => setAuthMode("manual")} className={`px-3 py-1.5 text-xs font-bold rounded-lg ${authMode === "manual" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Manual</button>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">No modo automático, o sistema usa as credenciais padrão. No manual, usa as configurações abaixo (Discord/AbacatePay).</p>
+            <p className="text-xs text-muted-foreground">No modo automático, o sistema usa as credenciais padrão. No manual, usa as configurações abaixo (Discord/Evopay).</p>
           </div>
 
           {/* Discord */}
@@ -383,20 +383,20 @@ export default function AdminView() {
             )}
           </div>
 
-          {/* AbacatePay */}
+          {/* Evopay */}
           <div className="glass-card p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-foreground">Credenciais AbacatePay</h3>
+              <h3 className="font-bold text-foreground">Credenciais Evopay</h3>
               <div className="flex gap-1 bg-muted rounded-xl p-1">
-                <button onClick={() => setAbacatepayMode("automatic")} className={`px-3 py-1.5 text-xs font-bold rounded-lg ${abacatepayMode === "automatic" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Automático</button>
-                <button onClick={() => setAbacatepayMode("manual")} className={`px-3 py-1.5 text-xs font-bold rounded-lg ${abacatepayMode === "manual" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Manual</button>
+                <button onClick={() => setEvopayMode("automatic")} className={`px-3 py-1.5 text-xs font-bold rounded-lg ${evopayMode === "automatic" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Automático</button>
+                <button onClick={() => setEvopayMode("manual")} className={`px-3 py-1.5 text-xs font-bold rounded-lg ${evopayMode === "manual" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Manual</button>
               </div>
             </div>
-            {abacatepayMode === "manual" ? (
+            {evopayMode === "manual" ? (
               <div>
                 <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">API Key</label>
-                <input type="password" value={abacatepayApiKey} onChange={(e) => setAbacatepayApiKey(e.target.value)} placeholder="••••••••" className="w-full p-3 rounded-xl bg-muted text-sm text-foreground font-mono" />
-                <p className="text-[10px] text-muted-foreground mt-1">⚠️ Para uso real, configure também o secret ABACATEPAY_API_KEY no backend.</p>
+                <input type="password" value={evopayApiKey} onChange={(e) => setEvopayApiKey(e.target.value)} placeholder="••••••••" className="w-full p-3 rounded-xl bg-muted text-sm text-foreground font-mono" />
+                <p className="text-[10px] text-muted-foreground mt-1">⚠️ Para uso real, configure também o secret EVOPAY_API_KEY no backend.</p>
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">Usando a API Key configurada nos secrets do backend.</p>

@@ -144,8 +144,8 @@ export interface AppConfig {
   discordScopes: string;
   discordMode: "automatic" | "manual";
   discordServerLink: string;
-  abacatepayApiKey: string;
-  abacatepayMode: "automatic" | "manual";
+  evopayApiKey: string;
+  evopayMode: "automatic" | "manual";
   rules: string;
 }
 
@@ -225,8 +225,8 @@ const defaultConfig: AppConfig = {
   discordScopes: "identify email",
   discordMode: "automatic",
   discordServerLink: "https://discord.gg/zxmax",
-  abacatepayApiKey: "",
-  abacatepayMode: "automatic",
+  evopayApiKey: "",
+  evopayMode: "automatic",
   rules: "1- Proibido estelionato(golpe).\n2-Proibido lavagem de dinheiro no sistema de saque do site.\n3-Proibido venda de conteúdo adulto, cp, gore ou qualquer conteúdo doloso\n\n**(Toda regra quebrada resultará a suspensão do usuário de 1 semana a permanente sem receber dinheiro de vendas durante a suspensão.)**",
 };
 
@@ -261,8 +261,8 @@ function loadState(): AppState {
           discordScopes: parsed.config?.discordScopes || defaultConfig.discordScopes,
           discordMode: parsed.config?.discordMode || defaultConfig.discordMode,
           discordServerLink: parsed.config?.discordServerLink || defaultConfig.discordServerLink,
-          abacatepayApiKey: parsed.config?.abacatepayApiKey || defaultConfig.abacatepayApiKey,
-          abacatepayMode: parsed.config?.abacatepayMode || defaultConfig.abacatepayMode,
+          evopayApiKey: parsed.config?.evopayApiKey || defaultConfig.evopayApiKey,
+          evopayMode: parsed.config?.evopayMode || defaultConfig.evopayMode,
           rules: parsed.config?.rules || defaultConfig.rules,
         },
         products: parsed.products?.length ? parsed.products : [],
