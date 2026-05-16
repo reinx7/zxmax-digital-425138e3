@@ -43,7 +43,7 @@ Deno.serve(async (req: Request) => {
       payerDocument: "00000000000",
     };
 
-    const response = await fetch("https://pix.evopay.cash/v1/pix", {
+    const response = await fetch("https://processamento.evopay.cash/v1/pix", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

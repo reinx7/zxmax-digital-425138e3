@@ -76,30 +76,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const checkAdmin = async (userId: string, email?: string) => {
-    // Hardcoded admin check for the specific email
-    if (email === "admin@keybot.com") {
-      setIsAdmin(true);
-      // Also ensure the role exists in the database for RLS
-      const { data: existingRole } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .eq("role", "admin")
-        .maybeSingle();
-      
-      if (!existingRole) {
-        await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
-      }
-      return;
-    }
-
-    const { data } = await supabase
+    // Check if user already has admin role
+    const { data: existingRole } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
-    setIsAdmin(!!data);
+    
+    if (existingRole) {
+      setIsAdmin(true);
+      return;
+    }
+
+    // Check if there are any admins in the system
+    const { count: adminCount } = await supabase
+      .from("user_roles")
+      .select("*", { count: "exact", head: true })
+      .eq("role", "admin");
+
+    // If no admins exist, make this user the first admin
+    if (adminCount === 0) {
+      const { error } = await supabase
+        .from("user_roles")
+        .insert({ user_id: userId, role: "admin" });
+      
+      if (!error) {
+        setIsAdmin(true);
+        console.log("[v0] First user became admin:", email);
+        return;
+      }
+    }
+
+    setIsAdmin(false);
   };
 
   useEffect(() => {

@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_config: {
+        Row: {
+          key: string
+          value: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          value?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          value?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bans: {
         Row: {
           active: boolean
@@ -134,9 +155,11 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          balance: number
           created_at: string
           display_name: string
           document_type: string | null
+          earnings: number
           email: string
           id: string
           is_verified_seller: boolean
@@ -147,9 +170,11 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          balance?: number
           created_at?: string
           display_name?: string
           document_type?: string | null
+          earnings?: number
           email: string
           id?: string
           is_verified_seller?: boolean
@@ -160,9 +185,11 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          balance?: number
           created_at?: string
           display_name?: string
           document_type?: string | null
+          earnings?: number
           email?: string
           id?: string
           is_verified_seller?: boolean
@@ -405,6 +432,12 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_product_sales: {
+        Args: {
+          product_id: number
+        }
+        Returns: void
       }
       is_banned: { Args: { _user_id: string }; Returns: boolean }
     }

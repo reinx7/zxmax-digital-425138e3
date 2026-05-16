@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useStore, ProductVariation } from "@/store/StoreContext";
 import { StarEmoji, FireEmoji, RocketEmoji, ShieldEmoji, ChatEmoji } from "@/components/CustomEmojis";
-import { Search, X, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, Image as ImageIcon, ShoppingCart, MessageSquare, Star, Info, Copy, Clock, QrCode } from "lucide-react";
+import { Search, X, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, Image as ImageIcon, ShoppingCart, MessageSquare, Star, Info, Copy, Clock, QrCode, Send } from "lucide-react";
 import { toast } from "sonner";
 import UserProfileModal from "@/components/UserProfileModal";
 import { supabase } from "@/integrations/supabase/client";
